@@ -8,19 +8,37 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>☠ UAC LAB AUTOMATION FACILITY ☠</title>
 <style>
-  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-
+  *, *::before, *::after {
+    margin: 0; padding: 0; box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none; -webkit-user-select: none;
+  }
   html, body {
-    width:100%; height:100%;
-    background:#000;
-    overflow:hidden;
-    font-family:monospace;
-    touch-action:none;
-    user-select:none;
-    -webkit-user-select:none;
+    width: 100%; height: 100%;
+    background: #000; overflow: hidden;
+    font-family: monospace; touch-action: none;
   }
 
-  /* ── Layout: canvas on top, controls panel on bottom ── */
+  /* ── Loading screen ── */
+  #loading {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: #000; color: #e00;
+    letter-spacing: 2px; gap: 10px;
+  }
+  #load-title  { font-size: clamp(12px,3vw,18px); text-shadow: 0 0 12px #f00; }
+  #load-sub    { color: #555; font-size: 11px; }
+  #load-status { font-size: 12px; color: #777; }
+  #progress-bar {
+    width: 220px; height: 4px;
+    background: #1a1a1a; border: 1px solid #e00; margin-top: 6px;
+  }
+  #progress-fill { height: 100%; background: #e00; width: 0%; transition: width 0.3s; }
+
+  /* ══════════════════════════════════════════════
+     MOBILE LAYOUT  (default — touch devices)
+  ══════════════════════════════════════════════ */
   #app {
     display: flex;
     flex-direction: column;
@@ -28,234 +46,146 @@
     height: 100%;
   }
 
+  /* Canvas: fixed 4:3 Doom ratio at top */
   #canvas-wrap {
-    flex: 0 0 auto;
     width: 100%;
-    /* 4:3 aspect ratio for Doom */
     aspect-ratio: 4 / 3;
+    flex-shrink: 0;
     background: #000;
-    position: relative;
   }
+  canvas { width: 100%; height: 100%; display: block; touch-action: none; }
 
-  canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-    touch-action: none;
-  }
-
-  /* Controls panel fills remaining space */
+  /* Controls: fills remaining height */
   #controls-panel {
     flex: 1 1 0;
-    min-height: 180px;
-    background: #0a0a0a;
-    border-top: 1px solid #1a1a1a;
+    min-height: 0;
+    background: #0c0c0c;
+    border-top: 1px solid #1e1e1e;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    padding: 8px 16px;
+    gap: 6px;
+  }
+
+  /* Top util row */
+  #util-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .util-btn {
+    flex: 1;
+    max-width: 80px;
+    padding: 7px 4px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 7px;
+    color: rgba(255,255,255,0.65);
+    font-family: monospace;
+    font-size: 11px;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+  }
+  .util-btn:active, .util-btn.pressed { background: rgba(255,255,255,0.22); color:#fff; }
+
+  /* Main row: dpad + actions */
+  #main-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 20px;
     gap: 8px;
   }
 
-  /* ── D-pad ── */
+  /* D-pad */
   #dpad {
-    width: 148px;
-    height: 148px;
     position: relative;
+    width: 136px;
+    height: 136px;
     flex-shrink: 0;
   }
-
-  .dpad-btn {
+  .dp {
     position: absolute;
-    width: 46px;
-    height: 46px;
-    background: rgba(255,255,255,0.12);
-    border: 1.5px solid rgba(255,255,255,0.25);
+    width: 42px; height: 42px;
+    background: rgba(255,255,255,0.11);
+    border: 1.5px solid rgba(255,255,255,0.22);
     border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    color: rgba(255,255,255,0.85);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: rgba(255,255,255,0.8);
     cursor: pointer;
   }
-  .dpad-btn:active, .dpad-btn.pressed { background: rgba(255,255,255,0.32); }
-
-  #btn-up    { top: 0;    left: 51px; }
-  #btn-down  { bottom: 0; left: 51px; }
-  #btn-left  { top: 51px; left: 0;   }
-  #btn-right { top: 51px; right: 0;  }
-
-  /* Center dead zone */
-  .dpad-center {
-    position: absolute;
-    top: 51px; left: 51px;
-    width: 46px; height: 46px;
-    background: rgba(255,255,255,0.04);
-    border-radius: 50%;
+  .dp:active, .dp.pressed { background: rgba(255,255,255,0.3); }
+  #btn-up    { top:0;    left:47px; }
+  #btn-down  { bottom:0; left:47px; }
+  #btn-left  { top:47px; left:0;   }
+  #btn-right { top:47px; right:0;  }
+  .dp-center {
+    position:absolute; top:47px; left:47px;
+    width:42px; height:42px;
+    border-radius:50%;
+    background: rgba(255,255,255,0.03);
+    pointer-events:none;
   }
 
-  /* ── Right side: fire + utility ── */
-  #right-side {
-    display: flex;
-    flex-direction: column;
+  /* Action buttons */
+  #action-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
     gap: 10px;
-    align-items: flex-end;
-    flex-shrink: 0;
+    flex: 1;
   }
-
-  /* Top utility row */
-  #util-row {
-    display: flex;
-    gap: 8px;
-  }
-
-  .util-btn {
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 7px;
-    color: rgba(255,255,255,0.7);
-    font-family: monospace;
-    font-size: 12px;
-    font-weight: bold;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    min-width: 44px;
-    text-align: center;
-  }
-  .util-btn:active, .util-btn.pressed { background: rgba(255,255,255,0.25); color:#fff; }
-
-  /* Main action buttons row */
-  #action-row {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-  }
-
-  .action-btn {
-    width: 72px;
-    height: 72px;
+  .ab {
+    aspect-ratio: 1;
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    font-family: monospace;
-    font-weight: bold;
-    font-size: 11px;
-    letter-spacing: 1px;
-    cursor: pointer;
-    border: 2px solid;
-    gap: 3px;
-  }
-  .action-btn span.icon { font-size: 22px; line-height: 1; }
-
-  #btn-fire {
-    background: rgba(200,0,0,0.3);
-    border-color: rgba(220,0,0,0.6);
-    color: #ff4444;
-    width: 82px;
-    height: 82px;
-  }
-  #btn-fire:active, #btn-fire.pressed {
-    background: rgba(200,0,0,0.65);
-  }
-
-  #btn-enter {
-    background: rgba(0,220,80,0.2);
-    border-color: rgba(0,220,80,0.5);
-    color: #00ee55;
-    width: 82px;
-    height: 82px;
-  }
-  #btn-enter:active, #btn-enter.pressed {
-    background: rgba(0,220,80,0.5);
-  }
-
-  #btn-run {
-    background: rgba(255,160,0,0.15);
-    border-color: rgba(255,160,0,0.4);
-    color: #ffaa00;
-  }
-  #btn-run:active, #btn-run.pressed {
-    background: rgba(255,160,0,0.4);
-  }
-
-  #btn-use {
-    background: rgba(0,160,255,0.15);
-    border-color: rgba(0,160,255,0.4);
-    color: #44aaff;
-  }
-  #btn-use:active, #btn-use.pressed {
-    background: rgba(0,160,255,0.4);
-  }
-
-  /* ── Loading screen ── */
-  #loading {
-    position: fixed; inset: 0;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    background: #000; color: #e00;
-    font-size: 18px; letter-spacing: 2px;
-    gap: 10px; z-index: 100;
+    font-family: monospace; font-weight: bold;
+    font-size: 10px; letter-spacing: 0.5px;
+    gap: 2px; cursor: pointer; border: 2px solid;
   }
-  #load-title   { font-size: clamp(13px,3vw,20px); text-shadow: 0 0 12px #f00; margin-bottom: 4px; }
-  #load-sub     { color: #666; font-size: 11px; margin-bottom: 16px; }
-  #load-status  { font-size: 12px; color: #888; }
-  #progress-bar { width: 240px; height: 4px; background: #1a1a1a; border: 1px solid #e00; margin-top: 8px; }
-  #progress-fill { height: 100%; background: #e00; width: 0%; transition: width 0.3s; }
+  .ab .ic { font-size: 20px; line-height: 1; }
+  .ab:active, .ab.pressed { filter: brightness(1.6); }
 
-  /* Desktop: no touch controls */
+  #btn-fire   { background:rgba(200,0,0,0.3);   border-color:rgba(220,0,0,0.65);   color:#ff4444; }
+  #btn-select { background:rgba(0,200,70,0.2);   border-color:rgba(0,210,70,0.55);  color:#00dd55; }
+  #btn-run    { background:rgba(255,150,0,0.18); border-color:rgba(255,150,0,0.45); color:#ffaa00; }
+  #btn-use    { background:rgba(0,140,255,0.18); border-color:rgba(0,140,255,0.45); color:#44aaff; }
+
+  /* ══════════════════════════════════════════════
+     DESKTOP LAYOUT  (pointer: fine)
+  ══════════════════════════════════════════════ */
   @media (pointer: fine) {
-    #controls-panel { display: none; }
     #canvas-wrap { aspect-ratio: unset; flex: 1 1 auto; }
+    #controls-panel { display: none; }
+    #kb-legend { display: flex; }
   }
 
-  /* Keyboard legend — desktop only */
+  /* Keyboard legend */
   #kb-legend {
-    display: flex;
+    display: none;
     background: #080808;
     border-top: 1px solid #1a1a1a;
-    padding: 10px 20px;
-    gap: 0;
+    padding: 9px 20px;
     flex-wrap: wrap;
     justify-content: center;
     align-items: center;
-    column-gap: 24px;
-    row-gap: 6px;
+    column-gap: 20px;
+    row-gap: 5px;
   }
   .kb-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: #555;
-    font-family: monospace;
-    font-size: 11px;
-    letter-spacing: 0.5px;
-  }
-  .kb-item .action {
-    color: #888;
+    display: flex; align-items: center; gap: 5px;
+    color: #888; font-family: monospace; font-size: 11px;
   }
   kbd {
-    display: inline-block;
-    padding: 2px 6px;
-    background: #1a1a1a;
-    border: 1px solid #333;
-    border-bottom: 2px solid #444;
-    border-radius: 4px;
-    color: #ccc;
-    font-family: monospace;
-    font-size: 10px;
-    line-height: 1.4;
-    white-space: nowrap;
+    display: inline-block; padding: 2px 6px;
+    background: #1a1a1a; border: 1px solid #333;
+    border-bottom: 2px solid #444; border-radius: 4px;
+    color: #ccc; font-family: monospace; font-size: 10px;
+    line-height: 1.4; white-space: nowrap;
   }
-  .kb-divider {
-    width: 1px;
-    height: 14px;
-    background: #222;
-    flex-shrink: 0;
-  }
+  .kb-div { width:1px; height:12px; background:#222; }
 </style>
 </head>
 <body>
@@ -273,132 +203,93 @@
     <canvas id="dosbox"></canvas>
   </div>
 
+  <!-- Mobile controls -->
   <div id="controls-panel">
-    <!-- D-pad -->
-    <div id="dpad">
-      <div class="dpad-btn" id="btn-up">▲</div>
-      <div class="dpad-btn" id="btn-left">◀</div>
-      <div class="dpad-center"></div>
-      <div class="dpad-btn" id="btn-right">▶</div>
-      <div class="dpad-btn" id="btn-down">▼</div>
+    <div id="util-row">
+      <div class="util-btn" id="btn-strafe">STRAFE</div>
+      <div class="util-btn" id="btn-map">MAP</div>
+      <div class="util-btn" id="btn-esc">ESC</div>
     </div>
-
-    <!-- Right side controls -->
-    <div id="right-side">
-      <div id="util-row">
-        <div class="util-btn" id="btn-strafe">STRAFE</div>
-        <div class="util-btn" id="btn-map">MAP</div>
-        <div class="util-btn" id="btn-esc">ESC</div>
+    <div id="main-row">
+      <div id="dpad">
+        <div class="dp" id="btn-up">▲</div>
+        <div class="dp" id="btn-left">◀</div>
+        <div class="dp-center"></div>
+        <div class="dp" id="btn-right">▶</div>
+        <div class="dp" id="btn-down">▼</div>
       </div>
-      <div id="action-row">
-        <div class="action-btn" id="btn-run">
-          <span class="icon">⚡</span>RUN
-        </div>
-        <div class="action-btn" id="btn-use">
-          <span class="icon">🚪</span>USE
-        </div>
-        <div class="action-btn" id="btn-fire">
-          <span class="icon">🔥</span>FIRE
-        </div>
-        <div class="action-btn" id="btn-enter">
-          <span class="icon">✓</span>SELECT
-        </div>
+      <div id="action-btns">
+        <div class="ab" id="btn-run">   <span class="ic">⚡</span>RUN</div>
+        <div class="ab" id="btn-fire">  <span class="ic">🔥</span>FIRE</div>
+        <div class="ab" id="btn-use">   <span class="ic">🚪</span>USE</div>
+        <div class="ab" id="btn-select"><span class="ic">✓</span>SELECT</div>
       </div>
     </div>
   </div>
 
   <!-- Desktop keyboard legend -->
   <div id="kb-legend">
-    <div class="kb-item"><kbd>↑ ↓</kbd> <span class="action">Move</span></div>
-    <div class="kb-item"><kbd>← →</kbd> <span class="action">Turn</span></div>
-    <div class="kb-divider"></div>
-    <div class="kb-item"><kbd>Ctrl</kbd> <span class="action">Fire</span></div>
-    <div class="kb-item"><kbd>Space</kbd> <span class="action">Use / Open</span></div>
-    <div class="kb-item"><kbd>Shift</kbd> <span class="action">Run</span></div>
-    <div class="kb-item"><kbd>Alt</kbd> <span class="action">Strafe</span></div>
-    <div class="kb-divider"></div>
-    <div class="kb-item"><kbd>Enter</kbd> <span class="action">Select</span></div>
-    <div class="kb-item"><kbd>Tab</kbd> <span class="action">Map</span></div>
-    <div class="kb-item"><kbd>1–7</kbd> <span class="action">Weapons</span></div>
-    <div class="kb-item"><kbd>Esc</kbd> <span class="action">Menu</span></div>
+    <div class="kb-item"><kbd>↑ ↓</kbd> Move</div>
+    <div class="kb-item"><kbd>← →</kbd> Turn</div>
+    <div class="kb-div"></div>
+    <div class="kb-item"><kbd>Ctrl</kbd> Fire</div>
+    <div class="kb-item"><kbd>Space</kbd> Use</div>
+    <div class="kb-item"><kbd>Shift</kbd> Run</div>
+    <div class="kb-item"><kbd>Alt</kbd> Strafe</div>
+    <div class="kb-div"></div>
+    <div class="kb-item"><kbd>Enter</kbd> Select</div>
+    <div class="kb-item"><kbd>Tab</kbd> Map</div>
+    <div class="kb-item"><kbd>1–7</kbd> Weapons</div>
+    <div class="kb-item"><kbd>Esc</kbd> Menu</div>
   </div>
 </div>
 
 <script src="assets/js/jsdos.js"></script>
 <script>
-  // ── Prevent scroll/zoom ───────────────────────────────────────────
-  document.addEventListener('touchmove',  function(e) { e.preventDefault(); }, { passive: false });
-  document.addEventListener('touchstart', function(e) { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
-  document.addEventListener('gesturestart',  function(e) { e.preventDefault(); }, { passive: false });
-  document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, { passive: false });
+  // Block scroll/zoom
+  document.addEventListener('touchmove',     function(e){ e.preventDefault(); }, { passive:false });
+  document.addEventListener('touchstart',    function(e){ if(e.touches.length>1) e.preventDefault(); }, { passive:false });
+  document.addEventListener('gesturestart',  function(e){ e.preventDefault(); }, { passive:false });
+  document.addEventListener('gesturechange', function(e){ e.preventDefault(); }, { passive:false });
 
-  // ── Key state ─────────────────────────────────────────────────────
-  var KEY = {
-    UP:38, DOWN:40, LEFT:37, RIGHT:39,
-    CTRL:17, SHIFT:16, ALT:18,
-    SPACE:32, TAB:9, ESC:27, ENTER:13
-  };
-
-  // js-dos v6 stores the key consumer on the CommandInterface (ci)
+  var KEY = { UP:38, DOWN:40, LEFT:37, RIGHT:39, CTRL:17, SHIFT:16, ALT:18, SPACE:32, TAB:9, ESC:27, ENTER:13 };
   var ci = null;
 
-  function pressKey(code) {
-    if (ci && ci.getKeyEventConsumer) {
-      ci.getKeyEventConsumer().onPress(code);
-    }
-  }
-  function releaseKey(code) {
-    if (ci && ci.getKeyEventConsumer) {
-      ci.getKeyEventConsumer().onRelease(code);
-    }
-  }
+  function press(k)   { if(ci && ci.getKeyEventConsumer) ci.getKeyEventConsumer().onPress(k);   }
+  function release(k) { if(ci && ci.getKeyEventConsumer) ci.getKeyEventConsumer().onRelease(k); }
 
-  // ── Boot js-dos ───────────────────────────────────────────────────
-  var loadingEl  = document.getElementById('loading');
-  var statusEl   = document.getElementById('load-status');
-  var progressEl = document.getElementById('progress-fill');
-
-  statusEl.textContent  = 'Loading engine…';
-  progressEl.style.width = '10%';
+  // Boot
+  var loadEl = document.getElementById('loading');
+  var statEl = document.getElementById('load-status');
+  var progEl = document.getElementById('progress-fill');
+  statEl.textContent = 'Loading engine…';
+  progEl.style.width = '10%';
 
   Dos(document.getElementById('dosbox'), {
     wdosboxUrl: 'assets/js/wdosbox.js'
   }).ready(function(fs, main) {
-    statusEl.textContent  = 'Extracting DOOM…';
-    progressEl.style.width = '40%';
+    statEl.textContent = 'Extracting DOOM…';
+    progEl.style.width = '40%';
     fs.extract('assets/js/doom.zip').then(function() {
-      statusEl.textContent  = 'Starting DOOM…';
-      progressEl.style.width = '80%';
+      statEl.textContent = 'Starting DOOM…';
+      progEl.style.width = '80%';
       main(['-c', 'cd DOOM', '-c', 'DOOM.EXE']).then(function(commandInterface) {
-        ci = commandInterface;          // ← store so controls can use it
-        progressEl.style.width = '100%';
-        setTimeout(function() { loadingEl.style.display = 'none'; }, 500);
+        ci = commandInterface;
+        progEl.style.width = '100%';
+        setTimeout(function(){ loadEl.style.display = 'none'; }, 500);
       });
     });
   });
 
-  // ── Button binding ────────────────────────────────────────────────
   function bindBtn(id, keyCode) {
     var el = document.getElementById(id);
     if (!el) return;
-
-    function down(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      el.classList.add('pressed');
-      pressKey(keyCode);
-    }
-    function up(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      el.classList.remove('pressed');
-      releaseKey(keyCode);
-    }
-
-    el.addEventListener('touchstart',  down, { passive: false });
-    el.addEventListener('touchend',    up,   { passive: false });
-    el.addEventListener('touchcancel', up,   { passive: false });
-    el.addEventListener('mousedown',   down);
+    function dn(e){ e.preventDefault(); e.stopPropagation(); el.classList.add('pressed');    press(keyCode);   }
+    function up(e){ e.preventDefault(); e.stopPropagation(); el.classList.remove('pressed'); release(keyCode); }
+    el.addEventListener('touchstart',  dn, { passive:false });
+    el.addEventListener('touchend',    up, { passive:false });
+    el.addEventListener('touchcancel', up, { passive:false });
+    el.addEventListener('mousedown',   dn);
     el.addEventListener('mouseup',     up);
     el.addEventListener('mouseleave',  up);
   }
@@ -410,10 +301,10 @@
   bindBtn('btn-fire',   KEY.CTRL);
   bindBtn('btn-run',    KEY.SHIFT);
   bindBtn('btn-use',    KEY.SPACE);
+  bindBtn('btn-select', KEY.ENTER);
   bindBtn('btn-strafe', KEY.ALT);
   bindBtn('btn-map',    KEY.TAB);
   bindBtn('btn-esc',    KEY.ESC);
-  bindBtn('btn-enter',  KEY.ENTER);
 </script>
 </body>
 </html>
