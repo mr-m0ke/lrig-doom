@@ -206,16 +206,15 @@
   #progress-bar { width: 240px; height: 4px; background: #1a1a1a; border: 1px solid #e00; margin-top: 8px; }
   #progress-fill { height: 100%; background: #e00; width: 0%; transition: width 0.3s; }
 
-  /* Desktop: no touch controls, show keyboard legend instead */
+  /* Desktop: no touch controls */
   @media (pointer: fine) {
     #controls-panel { display: none; }
     #canvas-wrap { aspect-ratio: unset; flex: 1 1 auto; }
-    #kb-legend { display: flex; }
   }
 
   /* Keyboard legend — desktop only */
   #kb-legend {
-    display: none;
+    display: flex;
     background: #080808;
     border-top: 1px solid #1a1a1a;
     padding: 10px 20px;
