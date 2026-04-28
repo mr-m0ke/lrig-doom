@@ -206,10 +206,56 @@
   #progress-bar { width: 240px; height: 4px; background: #1a1a1a; border: 1px solid #e00; margin-top: 8px; }
   #progress-fill { height: 100%; background: #e00; width: 0%; transition: width 0.3s; }
 
-  /* Desktop: no controls panel */
+  /* Desktop: no touch controls, show keyboard legend instead */
   @media (pointer: fine) {
     #controls-panel { display: none; }
     #canvas-wrap { aspect-ratio: unset; flex: 1 1 auto; }
+    #kb-legend { display: flex; }
+  }
+
+  /* Keyboard legend — desktop only */
+  #kb-legend {
+    display: none;
+    background: #080808;
+    border-top: 1px solid #1a1a1a;
+    padding: 10px 20px;
+    gap: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    column-gap: 24px;
+    row-gap: 6px;
+  }
+  .kb-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #555;
+    font-family: monospace;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+  .kb-item .action {
+    color: #888;
+  }
+  kbd {
+    display: inline-block;
+    padding: 2px 6px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-bottom: 2px solid #444;
+    border-radius: 4px;
+    color: #ccc;
+    font-family: monospace;
+    font-size: 10px;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+  .kb-divider {
+    width: 1px;
+    height: 14px;
+    background: #222;
+    flex-shrink: 0;
   }
 </style>
 </head>
@@ -260,6 +306,22 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Desktop keyboard legend -->
+  <div id="kb-legend">
+    <div class="kb-item"><kbd>↑ ↓</kbd> <span class="action">Move</span></div>
+    <div class="kb-item"><kbd>← →</kbd> <span class="action">Turn</span></div>
+    <div class="kb-divider"></div>
+    <div class="kb-item"><kbd>Ctrl</kbd> <span class="action">Fire</span></div>
+    <div class="kb-item"><kbd>Space</kbd> <span class="action">Use / Open</span></div>
+    <div class="kb-item"><kbd>Shift</kbd> <span class="action">Run</span></div>
+    <div class="kb-item"><kbd>Alt</kbd> <span class="action">Strafe</span></div>
+    <div class="kb-divider"></div>
+    <div class="kb-item"><kbd>Enter</kbd> <span class="action">Select</span></div>
+    <div class="kb-item"><kbd>Tab</kbd> <span class="action">Map</span></div>
+    <div class="kb-item"><kbd>1–7</kbd> <span class="action">Weapons</span></div>
+    <div class="kb-item"><kbd>Esc</kbd> <span class="action">Menu</span></div>
   </div>
 </div>
 
