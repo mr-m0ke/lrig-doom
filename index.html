@@ -2,12 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>☠ UAC LAB AUTOMATION FACILITY ☠</title>
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  html, body { width:100%; height:100%; background:#000; overflow:hidden; font-family:monospace; }
-  canvas { width:100%; height:100%; display:block; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body {
+    width:100%; height:100%; background:#000; overflow:hidden;
+    font-family:monospace; touch-action:none; user-select:none;
+  }
+  canvas { width:100%; height:100%; display:block; touch-action:none; }
+
+  /* Loading screen */
   #loading {
     position:fixed; inset:0; display:flex; flex-direction:column;
     align-items:center; justify-content:center;
@@ -22,9 +29,97 @@
     border: 1px solid #e00; margin-top: 8px;
   }
   #progress-fill { height: 100%; background: #e00; width: 0%; transition: width 0.3s; }
+
+  /* Mobile controls overlay — hidden on desktop */
+  #mobile-controls {
+    display: none;
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  /* D-pad (bottom-left) */
+  #dpad {
+    position: absolute;
+    bottom: 24px;
+    left: 20px;
+    width: 132px;
+    height: 132px;
+    pointer-events: all;
+  }
+  .dpad-btn {
+    position: absolute;
+    width: 40px; height: 40px;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: rgba(255,255,255,0.8);
+    cursor: pointer; pointer-events: all;
+    active-background: rgba(255,255,255,0.35);
+  }
+  .dpad-btn:active { background: rgba(255,255,255,0.35); }
+  #btn-up    { top: 0;   left: 46px; }
+  #btn-down  { bottom:0; left: 46px; }
+  #btn-left  { top: 46px; left: 0; }
+  #btn-right { top: 46px; right: 0; }
+
+  /* Action buttons (bottom-right) */
+  #action-btns {
+    position: absolute;
+    bottom: 24px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-end;
+    pointer-events: all;
+  }
+  .action-btn {
+    padding: 10px 18px;
+    background: rgba(220,0,0,0.25);
+    border: 1px solid rgba(220,0,0,0.5);
+    border-radius: 8px;
+    color: #ff4444;
+    font-family: monospace;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    cursor: pointer;
+    pointer-events: all;
+  }
+  .action-btn:active { background: rgba(220,0,0,0.5); }
+
+  /* Speed toggle (top-right) */
+  #top-btns {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 8px;
+    pointer-events: all;
+  }
+  .top-btn {
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 6px;
+    color: rgba(255,255,255,0.7);
+    font-family: monospace;
+    font-size: 11px;
+    cursor: pointer;
+    pointer-events: all;
+  }
+  .top-btn:active { background: rgba(255,255,255,0.25); }
+
+  @media (pointer: coarse) {
+    #mobile-controls { display: block; }
+  }
 </style>
 </head>
 <body>
+
 <div id="loading">
   <div id="title">☠ UAC LAB AUTOMATION FACILITY ☠</div>
   <div id="subtitle">rip and tear… through the vendor hall</div>
@@ -32,15 +127,46 @@
   <div id="load-status">Initializing…</div>
   <div id="progress-bar"><div id="progress-fill"></div></div>
 </div>
+
 <canvas id="dosbox"></canvas>
+
+<!-- Mobile touch controls -->
+<div id="mobile-controls">
+  <div id="top-btns">
+    <div class="top-btn" id="btn-use">USE</div>
+    <div class="top-btn" id="btn-strafe">STRAFE</div>
+    <div class="top-btn" id="btn-map">MAP</div>
+    <div class="top-btn" id="btn-esc">ESC</div>
+  </div>
+  <div id="dpad">
+    <div class="dpad-btn" id="btn-up">▲</div>
+    <div class="dpad-btn" id="btn-left">◀</div>
+    <div class="dpad-btn" id="btn-right">▶</div>
+    <div class="dpad-btn" id="btn-down">▼</div>
+  </div>
+  <div id="action-btns">
+    <div class="action-btn" id="btn-fire">🔥 FIRE</div>
+    <div class="action-btn" id="btn-speed">⚡ RUN</div>
+  </div>
+</div>
+
 <script src="assets/js/jsdos.js"></script>
 <script>
+  // ── Prevent scroll/zoom on touch ──────────────────────────────────
+  document.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+  document.addEventListener('touchstart', function(e) {
+    if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+
+  // ── Boot js-dos ───────────────────────────────────────────────────
   var loading  = document.getElementById('loading');
   var status   = document.getElementById('load-status');
   var progress = document.getElementById('progress-fill');
 
   status.textContent = 'Loading engine…';
   progress.style.width = '10%';
+
+  var dosInstance = null;
 
   Dos(document.getElementById('dosbox'), {
     wdosboxUrl: 'assets/js/wdosbox.js'
@@ -50,12 +176,72 @@
     fs.extract('assets/js/doom.zip').then(function() {
       status.textContent = 'Starting DOOM…';
       progress.style.width = '80%';
-      main(['-c', 'cd DOOM', '-c', 'DOOM.EXE']).then(function() {
+      main(['-c', 'cd DOOM', '-c', 'DOOM.EXE']).then(function(ci) {
         progress.style.width = '100%';
+        dosInstance = ci;
         setTimeout(function() { loading.style.display = 'none'; }, 500);
       });
     });
   });
+
+  // ── Mobile key mapping ────────────────────────────────────────────
+  // Doom key codes (DOS scancodes via js-dos)
+  var KEYS = {
+    UP:     38,  // arrow up    = move forward
+    DOWN:   40,  // arrow down  = move back
+    LEFT:   37,  // arrow left  = turn left
+    RIGHT:  39,  // arrow right = turn right
+    CTRL:   17,  // fire
+    SPACE:  32,  // use / open
+    SHIFT:  16,  // run
+    ALT:    18,  // strafe on
+    TAB:     9,  // automap
+    ESC:    27,
+  };
+
+  function getKeyConsumer() {
+    if (dosInstance && dosInstance.getKeyEventConsumer) return dosInstance.getKeyEventConsumer();
+    return null;
+  }
+
+  function pressKey(code) {
+    var kc = getKeyConsumer();
+    if (kc) kc.onPress(code);
+  }
+  function releaseKey(code) {
+    var kc = getKeyConsumer();
+    if (kc) kc.onRelease(code);
+  }
+
+  function bindBtn(id, keyCode) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('touchstart', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      pressKey(keyCode);
+    }, { passive: false });
+    el.addEventListener('touchend', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      releaseKey(keyCode);
+    }, { passive: false });
+    el.addEventListener('touchcancel', function(e) {
+      releaseKey(keyCode);
+    }, { passive: false });
+    // also support mouse clicks for desktop testing
+    el.addEventListener('mousedown', function(e) { e.preventDefault(); pressKey(keyCode); });
+    el.addEventListener('mouseup',   function(e) { e.preventDefault(); releaseKey(keyCode); });
+  }
+
+  bindBtn('btn-up',     KEYS.UP);
+  bindBtn('btn-down',   KEYS.DOWN);
+  bindBtn('btn-left',   KEYS.LEFT);
+  bindBtn('btn-right',  KEYS.RIGHT);
+  bindBtn('btn-fire',   KEYS.CTRL);
+  bindBtn('btn-speed',  KEYS.SHIFT);
+  bindBtn('btn-use',    KEYS.SPACE);
+  bindBtn('btn-strafe', KEYS.ALT);
+  bindBtn('btn-map',    KEYS.TAB);
+  bindBtn('btn-esc',    KEYS.ESC);
 </script>
 </body>
 </html>
