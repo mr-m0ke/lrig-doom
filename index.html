@@ -162,6 +162,17 @@
     background: rgba(200,0,0,0.65);
   }
 
+  #btn-enter {
+    background: rgba(0,220,80,0.2);
+    border-color: rgba(0,220,80,0.5);
+    color: #00ee55;
+    width: 82px;
+    height: 82px;
+  }
+  #btn-enter:active, #btn-enter.pressed {
+    background: rgba(0,220,80,0.5);
+  }
+
   #btn-run {
     background: rgba(255,160,0,0.15);
     border-color: rgba(255,160,0,0.4);
@@ -244,6 +255,9 @@
         <div class="action-btn" id="btn-fire">
           <span class="icon">🔥</span>FIRE
         </div>
+        <div class="action-btn" id="btn-enter">
+          <span class="icon">✓</span>SELECT
+        </div>
       </div>
     </div>
   </div>
@@ -261,7 +275,7 @@
   var KEY = {
     UP:38, DOWN:40, LEFT:37, RIGHT:39,
     CTRL:17, SHIFT:16, ALT:18,
-    SPACE:32, TAB:9, ESC:27
+    SPACE:32, TAB:9, ESC:27, ENTER:13
   };
 
   // js-dos v6 stores the key consumer on the CommandInterface (ci)
@@ -338,6 +352,7 @@
   bindBtn('btn-strafe', KEY.ALT);
   bindBtn('btn-map',    KEY.TAB);
   bindBtn('btn-esc',    KEY.ESC);
+  bindBtn('btn-enter',  KEY.ENTER);
 </script>
 </body>
 </html>
