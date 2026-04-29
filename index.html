@@ -95,7 +95,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 24px;
+    padding: 0 8px;
   }
 
   /* D-pad */
@@ -254,29 +255,37 @@
   var ci = null;
 
   function press(k) {
-    // Try js-dos CommandInterface first
-    if (ci && ci.getKeyEventConsumer) {
-      try { ci.getKeyEventConsumer().onPress(k); return; } catch(e) {}
-    }
-    // Fall back to simulating real keyboard events on the canvas
+    // Always dispatch a real keyboard event to the canvas — most reliable
     var canvas = document.getElementById('dosbox');
     var target = canvas || document;
-    var evt = new KeyboardEvent('keydown', {
-      keyCode: k, which: k, bubbles: true, cancelable: true
-    });
-    target.dispatchEvent(evt);
+    if (canvas) { canvas.focus(); }
+    target.dispatchEvent(new KeyboardEvent('keydown', {
+      keyCode: k, which: k, key: codeToKey(k),
+      bubbles: true, cancelable: true
+    }));
+    // Also try js-dos CommandInterface API as a secondary path
+    if (ci && ci.getKeyEventConsumer) {
+      try { ci.getKeyEventConsumer().onPress(k); } catch(e) {}
+    }
   }
 
   function release(k) {
-    if (ci && ci.getKeyEventConsumer) {
-      try { ci.getKeyEventConsumer().onRelease(k); return; } catch(e) {}
-    }
     var canvas = document.getElementById('dosbox');
     var target = canvas || document;
-    var evt = new KeyboardEvent('keyup', {
-      keyCode: k, which: k, bubbles: true, cancelable: true
-    });
-    target.dispatchEvent(evt);
+    target.dispatchEvent(new KeyboardEvent('keyup', {
+      keyCode: k, which: k, key: codeToKey(k),
+      bubbles: true, cancelable: true
+    }));
+    if (ci && ci.getKeyEventConsumer) {
+      try { ci.getKeyEventConsumer().onRelease(k); } catch(e) {}
+    }
+  }
+
+  // Map keyCode to key string for KeyboardEvent
+  function codeToKey(k) {
+    var m = {17:'Control',16:'Shift',18:'Alt',32:' ',9:'Tab',27:'Escape',13:'Enter',
+             38:'ArrowUp',40:'ArrowDown',37:'ArrowLeft',39:'ArrowRight'};
+    return m[k] || String.fromCharCode(k);
   }
 
   // Boot
