@@ -131,8 +131,8 @@
   /* Action buttons */
   #action-btns {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr;
     gap: 10px;
     flex: 1;
   }
@@ -206,9 +206,8 @@
   <!-- Mobile controls -->
   <div id="controls-panel">
     <div id="util-row">
-      <div class="util-btn" id="btn-strafe">STRAFE</div>
-      <div class="util-btn" id="btn-map">MAP</div>
       <div class="util-btn" id="btn-esc">ESC</div>
+      <div class="util-btn" id="btn-map">MAP</div>
     </div>
     <div id="main-row">
       <div id="dpad">
@@ -219,10 +218,9 @@
         <div class="dp" id="btn-down">▼</div>
       </div>
       <div id="action-btns">
-        <div class="ab" id="btn-run">   <span class="ic">⚡</span>RUN</div>
         <div class="ab" id="btn-fire">  <span class="ic">🔥</span>FIRE</div>
         <div class="ab" id="btn-use">   <span class="ic">🚪</span>USE</div>
-        <div class="ab" id="btn-select"><span class="ic">✓</span>SELECT</div>
+        <div class="ab" id="btn-select"><span class="ic">✓</span>OK</div>
       </div>
     </div>
   </div>
@@ -255,8 +253,31 @@
   var KEY = { UP:38, DOWN:40, LEFT:37, RIGHT:39, CTRL:17, SHIFT:16, ALT:18, SPACE:32, TAB:9, ESC:27, ENTER:13 };
   var ci = null;
 
-  function press(k)   { if(ci && ci.getKeyEventConsumer) ci.getKeyEventConsumer().onPress(k);   }
-  function release(k) { if(ci && ci.getKeyEventConsumer) ci.getKeyEventConsumer().onRelease(k); }
+  function press(k) {
+    // Try js-dos CommandInterface first
+    if (ci && ci.getKeyEventConsumer) {
+      try { ci.getKeyEventConsumer().onPress(k); return; } catch(e) {}
+    }
+    // Fall back to simulating real keyboard events on the canvas
+    var canvas = document.getElementById('dosbox');
+    var target = canvas || document;
+    var evt = new KeyboardEvent('keydown', {
+      keyCode: k, which: k, bubbles: true, cancelable: true
+    });
+    target.dispatchEvent(evt);
+  }
+
+  function release(k) {
+    if (ci && ci.getKeyEventConsumer) {
+      try { ci.getKeyEventConsumer().onRelease(k); return; } catch(e) {}
+    }
+    var canvas = document.getElementById('dosbox');
+    var target = canvas || document;
+    var evt = new KeyboardEvent('keyup', {
+      keyCode: k, which: k, bubbles: true, cancelable: true
+    });
+    target.dispatchEvent(evt);
+  }
 
   // Boot
   var loadEl = document.getElementById('loading');
@@ -276,7 +297,12 @@
       main(['-c', 'cd DOOM', '-c', 'DOOM.EXE']).then(function(commandInterface) {
         ci = commandInterface;
         progEl.style.width = '100%';
-        setTimeout(function(){ loadEl.style.display = 'none'; }, 500);
+        setTimeout(function(){
+          loadEl.style.display = 'none';
+          // Focus canvas so keyboard events reach the emulator
+          var canvas = document.getElementById('dosbox');
+          if (canvas) { canvas.setAttribute('tabindex','0'); canvas.focus(); }
+        }, 500);
       });
     });
   });
